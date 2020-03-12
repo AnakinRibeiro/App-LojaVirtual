@@ -1,7 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:transparent_image/transparent_image.dart';
 
 class HomeTab extends StatelessWidget {
 
+  // Widget do fundo rosa da tela inicial
   Widget _buildBodyBack() => Container(
       decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -17,11 +21,14 @@ class HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Stack para ter itens em cima do fundo da tela
     return Stack(
       children: <Widget>[
+        // Chamando o fundo da tela inicial
         _buildBodyBack(),
         CustomScrollView(
           slivers: <Widget>[
+            // Barra flutuante
             SliverAppBar(
               floating: true,
               snap: true,
@@ -31,6 +38,44 @@ class HomeTab extends StatelessWidget {
                 title: const Text("Novidades"),
                 centerTitle: true,
               ),
+            ),
+            // Recebe as imagens do banco de dados
+            FutureBuilder<QuerySnapshot>(
+              future: Firestore.instance
+                .collection("home").orderBy("pos").getDocuments(),
+              builder: (context, snapshot){
+                // Se o snapshot não tiver nenhum valor irá apresentar um circulo de progresso
+                if(!snapshot.hasData) {
+                  return SliverToBoxAdapter(
+                    child: Container(
+                      height: 200.0,
+                      alignment: Alignment.center,
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                  );
+                } 
+                // Se o snaptshot tiver algum valor retornará as imagens do banco com suas dimensões
+                else 
+                // Grid para multiplos itens com diferentes tamanhos 
+                  return SliverStaggeredGrid.count(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 1.0,
+                    crossAxisSpacing: 1.0,
+                    staggeredTiles: snapshot.data.documents.map(
+                      (doc) {
+                        return StaggeredTile.count(doc.data["x"], doc.data["y"]);
+                      }
+                    ).toList(),
+                    children: snapshot.data.documents.map(
+                      (doc) {
+                        return FadeInImage.memoryNetwork(placeholder: kTransparentImage, image: doc.data["image"],
+                        fit: BoxFit.cover,);
+                      }
+                    ).toList()
+                  );
+              },
             )
           ],
         )
